@@ -6,8 +6,18 @@ Create a `config.json` file and replace these contents with your information:
 
 ```
 {
-    "canvas_token": ":foo",
-    "canvas_url": ":bar.instructure.com",
-    "microsoft_todo_token": ":baz"
+    "canvas_token": "TOKEN_HERE",
+    "canvas_url": "SCHOOL_HERE.instructure.com",
+    "CLIENT_ID": "CID_HERE",
+    "TENANT_ID": "TID_HERE",
+    "AUTHORITY_URL": "https://login.microsoftonline.com/",
+    "RESOURCE": "https://graph.microsoft.com",
+    "API_VERSION": "beta"
 }
 ```
+Set up a new resource in Azure Portal. Change the **API Permissions** to allow `Tasks.ReadWrite`.
+Go to the **Authentication** page.
+- Add a platform
+    - Check the box next to https://login.microsoftonline.com/common/oauth2/nativeclient.
+- Find the setting labeled Default client type and set it to Yes.
+- Select Save at the top of the page.
