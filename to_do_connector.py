@@ -2,15 +2,14 @@ import sys
 import os, atexit
 import json
 import logging
-import time
 from typing import List
 from msal import token_cache
 import webbrowser
 import pyperclip
-
-import requests
 import msal
 from requests.sessions import Session
+
+from start_config import config
 from models import TodoTask
 
 # This will cache the token so we don't have to login through the website every time
@@ -22,9 +21,6 @@ atexit.register(lambda:
     # Hint: The following optional line persists only when state changed
     # if cache.has_state_changed else None
     )
-
-with open('config.json') as config_file:
-    config = json.load(config_file)
 
 GRAPH_URL = config['RESOURCE'] + '/' + config['API_VERSION']
 
@@ -60,7 +56,7 @@ def auth_for_session(auto = True) -> Session :
         print("Pick the account you want to use to proceed:")
         for i, a in enumerate(accounts):
             print(f'({str(i+1)}) ' + a["username"])
-        print(f'({str(len(accounts) + 1)}) None')
+        print(f'({str(len(accounts) + 1)}) Other')
         choice = input('Enter the number of an option: ')
         # Assuming the end user chose this one
         try:
@@ -120,6 +116,7 @@ def get_or_create_todolist(s: Session, name: str) -> str:
     lists = s.get(GRAPH_URL + '/me/todo/lists')
     if lists.status_code != 200:
         print("Response came back with error " + str(lists.status_code))
+        input('Press ENTER to exit.')
         quit()
     canvas_tasklist_ids = [lis['id'] for lis in lists.json()['value'] if lis['displayName'] == name]
     if not canvas_tasklist_ids:
@@ -127,6 +124,7 @@ def get_or_create_todolist(s: Session, name: str) -> str:
         res = s.post(GRAPH_URL + '/me/todo/lists', json={'displayName':config['TASK_LIST_NAME']})
         if res.status_code != 201:
             print("Could not insert list. Error " + str(lists.status_code))
+            input('Press ENTER to exit.')
             quit()
         canvas_tasklist_ids.append(res.json()['id'])
     return canvas_tasklist_ids[0]

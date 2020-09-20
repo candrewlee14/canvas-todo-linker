@@ -1,6 +1,5 @@
 from pprint import pprint
-from requests.sessions import Session
-from typing import Dict, List, Any
+from typing import Dict
 from datetime import datetime, timedelta
 
 from models import CanvasAssignment, CanvasCourse, TodoTask

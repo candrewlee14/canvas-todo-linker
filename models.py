@@ -15,11 +15,7 @@ class JsonSerializableBase():
 
     def to_json(self, includeId: bool = False):
         return json.dumps(self, default=lambda o: o.get_fields_dict(includeId), 
-            sort_keys=True, indent=4)
-
-
-
-        
+            sort_keys=True, indent=4)        
 
 class CanvasCourse():
     """Canvas Course class that helps in JSON deserialization"""
@@ -36,6 +32,7 @@ class CanvasCourse():
             ) 
         except:
             print("CanvasCourse dictionary came in unnexpected format")
+            input('Press ENTER to exit.')
             quit()
 
 
@@ -60,6 +57,7 @@ class CanvasAssignment():
             ) 
         except:
             print("CanvasAssignment dictionary came in unnexpected format")
+            input('Press ENTER to exit.')
             quit()
 
 class TodoTask(JsonSerializableBase):
@@ -87,6 +85,7 @@ class TodoTask(JsonSerializableBase):
             ) 
         except:
             print("TodoTask dictionary came in unnexpected format")
+            input('Press ENTER to exit.')
             quit()
 
     def to_json(self):
