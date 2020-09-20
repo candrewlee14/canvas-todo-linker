@@ -131,13 +131,24 @@ def get_or_create_todolist(s: Session, name: str) -> str:
         canvas_tasklist_ids.append(res.json()['id'])
     return canvas_tasklist_ids[0]
 
-def create_task_from_task_obj(s: Session, todolist_id: str, task: TodoTask) -> str:
-    res = s.post(GRAPH_URL + f'/me/todo/lists/{todolist_id}/tasks' , json=task.to_json())
+def create_task_from_task_obj(s: Session, todolist_id: str, task: TodoTask, is_update: bool = False) -> str:
+    res = None
+    if is_update:
+        res = s.patch(GRAPH_URL + f'/me/todo/lists/{todolist_id}/tasks' , json=task.to_json())
+    else:
+        res = s.post(GRAPH_URL + f'/me/todo/lists/{todolist_id}/tasks' , json=task.to_json())
     return res.json()
 
 def get_all_tasks_in_list(s: Session, todolist_id: str) -> List[TodoTask]:
-    tasks_data = s.get(GRAPH_URL + f'/me/todo/lists/{todolist_id}/tasks')
-    return [TodoTask.from_dict(task) for task in tasks_data.json()['value']]
+    tasks = list()
+    i = 0
+    while True:
+        next_endpoint = GRAPH_URL + f'/me/todo/lists/{todolist_id}/tasks?$skip={10*i}'
+        tasks_data = s.get(next_endpoint).json()
+        tasks.extend([TodoTask.from_dict(task) for task in tasks_data['value']])
+        i+=1
+        if len(tasks_data['value']) < 10: 
+            return tasks;
 
 """
 s = auth_for_session()

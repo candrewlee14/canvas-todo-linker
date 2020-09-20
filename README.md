@@ -15,7 +15,8 @@ Create a `config.json` file and replace these contents with your information:
     "SCOPE": ["Tasks.ReadWrite"],
     "TASK_LIST_NAME": "Canvas",
     "SET_REMINDERS": true,
-    "REMINDER_HOURS_BEFORE_DUE": 12
+    "REMINDER_HOURS_BEFORE_DUE": 12'
+    "BREAK_COURSENAME_AT_DASH": true
 }
 ```
 Set up a new resource in Azure Portal. Change the **API Permissions** to allow `Tasks.ReadWrite`.
