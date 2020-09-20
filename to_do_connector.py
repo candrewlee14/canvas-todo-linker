@@ -1,59 +1,119 @@
-from adal import AuthenticationContext
-import webbrowser
-import pyperclip
-import requests
+import sys  # For simplicity, we'll read config file from 1st CLI param sys.argv[1]
 import json
-import datetime
-from pprint import pprint
+import logging
 
-# load config file
+import requests
+import msal
+
+
 with open('config.json') as config_file:
-    data = json.load(config_file)
-    
-# From https://github.com/microsoftgraph/python-sample-console-app/blob/master/helpers.py
-def device_flow_session(auto=False):
-    """Obtain an access token from Azure AD (via device flow) and create
-    a Requests session instance ready to make authenticated calls to
-    Microsoft Graph.
-    client_id = Application ID for registered "Azure AD only" V1-endpoint app
-    auto      = whether to copy device code to clipboard and auto-launch browser
-    Returns Requests session object if user signed in successfully. The session
-    includes the access token in an Authorization header.
-    User identity must be an organizational account (ADAL does not support MSAs).
+    config = json.load(config_file)
+
+GRAPH_URL = config['RESOURCE'] + '/' + config['API_VERSION']
+
+
+# Function based on https://github.com/AzureAD/microsoft-authentication-library-for-python/blob/dev/sample/device_flow_sample.py
+def auth_for_session() -> requests.Session :
     """
-    ctx = AuthenticationContext(data['AUTHORITY_URL'] + data['TENANT_ID'], api_version=None)
-    device_code = ctx.acquire_user_code(data['RESOURCE'],
-                                        data['CLIENT_ID'])
+    Get an authorization bearer token from Microsoft to access Microsoft Graph data and return a requests Session.
+    """
+    """
+    The configuration file would look like this:
+    {
+        "authority": "https://login.microsoftonline.com/common",
+        "client_id": "your_client_id",
+        "SCOPE": ["User.ReadBasic.All"],
+            // You can find the other permission names from this document
+            // https://docs.microsoft.com/en-us/graph/permissions-reference
+        "endpoint": "https://graph.microsoft.com/v1.0/users"
+            // You can find more Microsoft Graph API endpoints from Graph Explorer
+            // https://developer.microsoft.com/en-us/graph/graph-explorer
+    }
+    You can then run this sample with a JSON configuration file:
+        python sample.py parameters.json
+    """
 
-    # display user instructions
-    if auto:
-        pyperclip.copy(device_code['user_code']) # copy user code to clipboard
-        webbrowser.open(device_code['verification_url']) # open browser
-        print(f'The code {device_code["user_code"]} has been copied to your clipboard, '
-              f'and your web browser is opening {device_code["verification_url"]}. '
-              'Paste the code to sign in.')
+    # Optional logging
+    # logging.basicConfig(level=logging.DEBUG)  # Enable DEBUG log for entire script
+    # logging.getLogger("msal").setLevel(logging.INFO)  # Optionally disable MSAL DEBUG logs
+
+    # Create a preferably long-lived app instance which maintains a token cache.
+    app = msal.PublicClientApplication(
+        config["CLIENT_ID"], authority='https://login.microsoftonline.com/common',
+        # token_cache=...  # Default cache is in memory only.
+                        # You can learn how to use SerializableTokenCache from
+                        # https://msal-python.rtfd.io/en/latest/#msal.SerializableTokenCache
+        )
+
+    # The pattern to acquire a token looks like this.
+    result = None
+
+    # Note: If your device-flow app does not have any interactive ability, you can
+    #   completely skip the following cache part. But here we demonstrate it anyway.
+    # We now check the cache to see if we have some end users signed in before.
+    accounts = app.get_accounts()
+    if accounts:
+        logging.info("Account(s) exists in cache, probably with token too. Let's try.")
+        print("Pick the account you want to use to proceed:")
+        for a in accounts:
+            print(a["username"])
+        # Assuming the end user chose this one
+        chosen = accounts[0]
+        # Now let's try to find a token in cache for this account
+        result = app.acquire_token_silent(config["SCOPE"], account=chosen)
+
+    if not result:
+        logging.info("No suitable token exists in cache. Let's get a new one from AAD.")
+
+        flow = app.initiate_device_flow(scopes=config["SCOPE"])
+        if "user_code" not in flow:
+            raise ValueError(
+                "Fail to create device flow. Err: %s" % json.dumps(flow, indent=4))
+
+        print(flow["message"])
+        sys.stdout.flush()  # Some terminal needs this to ensure the message is shown
+
+        # Ideally you should wait here, in order to save some unnecessary polling
+        # input("Press Enter after signing in from another device to proceed, CTRL+C to abort.")
+
+        result = app.acquire_token_by_device_flow(flow)  # By default it will block
+            # You can follow this instruction to shorten the block time
+            #    https://msal-python.readthedocs.io/en/latest/#msal.PublicClientApplication.acquire_token_by_device_flow
+            # or you may even turn off the blocking behavior,
+            # and then keep calling acquire_token_by_device_flow(flow) in your own customized loop.
+
+    if "access_token" in result:
+        session = requests.Session()
+        session.headers.update({'Authorization': f'Bearer {result["access_token"]}'})
+        return session
     else:
-        print(device_code['message'])
+        print(result.get("error"))
+        print(result.get("error_description"))
+        print(result.get("correlation_id"))  # You may need this when reporting a bug
 
-    token_response = ctx.acquire_token_with_device_code(data['RESOURCE'],
-                                                        device_code,
-                                                        data['CLIENT_ID'])
-    if not token_response.get('accessToken', None):
-        return None
+def get_or_create_canvas_list() -> str:
+    """Looks for given task list name in To Do lists, and if it doesn't exist, it creates it.
+    Returns the list id
+    """
+    lists = s.get(GRAPH_URL + '/me/todo/lists')
+    if lists.status_code != 200:
+        print("Response came back with error " + str(lists.status_code))
+        quit()
+    canvas_ids = [lis['id'] for lis in lists.json()['value'] if lis['displayName'] == config['TASK_LIST_NAME']]
+    if not canvas_ids:
+        # canvas list does not exit, we need to make it:
+        res = s.post(GRAPH_URL + '/me/todo/lists', json={'displayName':config['TASK_LIST_NAME']})
+        if res.status_code != 201:
+            print("Could not insert list. Error " + str(lists.status_code))
+            quit()
+        canvas_ids.append(res.json()['id'])
+    return canvas_ids[0]
 
-    session = requests.Session()
-    session.headers.update({'Authorization': f'Bearer {token_response["accessToken"]}',
-                            'SdkVersion': 'canvas-todo-linker',
-                            'x-client-SKU': 'canvas-todo-linker'})
-    return session
+def create_task_in_list(list_id: str):
+    res = s.post(GRAPH_URL + f'/me/todo/lists/{list_id}/tasks' , json={'title':'Test Task 2', 'body':{'content':'link would go here', 'contentType':'text'}})
+    return res.json()
 
-s = device_flow_session()
-GRAPH_URL = data['RESOURCE'] + '/' + data['API_VERSION']
-lists = s.get(GRAPH_URL + '/me/todo/lists')
-if lists.status_code != 200:
-    print("Response came back with error " + str(lists.status_code))
-    quit()
-list_ids = [lis['id'] for lis in lists.json()]
-tasks = s.get(GRAPH_URL + '/me/todo/lists/'+ list_ids[0] + '/tasks')
+s = auth_for_session()
+lis_id = get_or_create_canvas_list()
 
-pprint(tasks.json())
+print(json.dumps(create_task_in_list(lis_id), indent=2))

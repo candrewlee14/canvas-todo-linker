@@ -9,10 +9,11 @@ Create a `config.json` file and replace these contents with your information:
     "canvas_token": "TOKEN_HERE",
     "canvas_url": "SCHOOL_HERE.instructure.com",
     "CLIENT_ID": "CID_HERE",
-    "TENANT_ID": "TID_HERE",
-    "AUTHORITY_URL": "https://login.microsoftonline.com/",
+    "AUTHORITY_URL": "https://login.microsoftonline.com/common/",
     "RESOURCE": "https://graph.microsoft.com",
-    "API_VERSION": "beta"
+    "API_VERSION": "beta",
+    "SCOPE": ["Tasks.ReadWrite"],
+    "TASK_LIST_NAME": "Canvas"
 }
 ```
 Set up a new resource in Azure Portal. Change the **API Permissions** to allow `Tasks.ReadWrite`.
