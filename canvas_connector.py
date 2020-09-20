@@ -1,4 +1,5 @@
 import requests
+from requests.sessions import Session
 import json
 import datetime
 from pprint import pprint
@@ -12,7 +13,7 @@ with open('config.json') as config_file:
 # declare constant globals 
 CHUNK_SIZE = 9
 PER_PAGE = 50
-SESSION = requests.Session()
+SESSION = Session()
 SESSION.headers.update({'Authorization': f'Bearer {data["CANVAS_TOKEN"]}'})
 
 
@@ -54,3 +55,5 @@ def get_all_assignments():
         all_assignments.extend([CanvasAssignment.from_dict(event['assignment']) for event in assignment_events_res.json()])
         
     return all_assignments
+
+#print(get_all_assignments())

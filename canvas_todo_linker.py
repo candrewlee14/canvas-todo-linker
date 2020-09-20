@@ -10,7 +10,7 @@ from canvas_connector import get_all_assignments, get_all_courses
 def create_task_obj_from_assignment(assignment: CanvasAssignment, course_id_dict: Dict[int, str], parse_at_dash: bool = False) -> TodoTask:
     course_name = course_id_dict[assignment.course_id]
     #parse the due_at time, and set reminder back a specified number of hours
-    reminder_time = (datetime.fromisoformat(assignment.due_at.replace('Z', '')) - timedelta(hours = config["REMINDER_HOURS_BEFORE"])).isoformat()
+    reminder_time = (datetime.fromisoformat(assignment.due_at.replace('Z', '')) - timedelta(hours = config["REMINDER_HOURS_BEFORE_DUE"])).isoformat()
     if parse_at_dash:
         course_name = course_name.split('-', 1)[0]
     return TodoTask(

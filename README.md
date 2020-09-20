@@ -13,7 +13,9 @@ Create a `config.json` file and replace these contents with your information:
     "RESOURCE": "https://graph.microsoft.com",
     "API_VERSION": "beta",
     "SCOPE": ["Tasks.ReadWrite"],
-    "TASK_LIST_NAME": "Canvas"
+    "TASK_LIST_NAME": "Canvas",
+    "SET_REMINDERS": true,
+    "REMINDER_HOURS_BEFORE_DUE": 12
 }
 ```
 Set up a new resource in Azure Portal. Change the **API Permissions** to allow `Tasks.ReadWrite`.
