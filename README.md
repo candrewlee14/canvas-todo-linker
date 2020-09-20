@@ -6,8 +6,8 @@ Create a `config.json` file and replace these contents with your information:
 
 ```
 {
-    "canvas_token": "TOKEN_HERE",
-    "canvas_url": "SCHOOL_HERE.instructure.com",
+    "CANVAS_TOKEN": "TOKEN_HERE",
+    "CANVAS_URL": "SCHOOL_HERE.instructure.com",
     "CLIENT_ID": "CID_HERE",
     "AUTHORITY_URL": "https://login.microsoftonline.com/common/",
     "RESOURCE": "https://graph.microsoft.com",

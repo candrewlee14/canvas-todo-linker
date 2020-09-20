@@ -11,9 +11,8 @@ with open('config.json') as config_file:
 # declare constant globals 
 CHUNK_SIZE = 9
 PER_PAGE = 50
-CANVAS_HEADERS = {
-        'Authorization': 'Bearer ' + data['canvas_token'],
-    }
+SESSION = requests.Session()
+SESSION.headers.update({'Authorization': f'Bearer {data["CANVAS_TOKEN"]}'})
 
 def get_course_contexts():
     """Get all user canvas course ids and return list of contexts"""
@@ -21,9 +20,8 @@ def get_course_contexts():
             'enrollment_state':'active',
             'per_page': PER_PAGE,
         }
-    courses_res = requests.get(
-        'https://' + data["canvas_url"] + '/api/v1/courses', 
-        headers=CANVAS_HEADERS, params=course_params)
+    courses_res = SESSION.get('https://' + data["CANVAS_URL"] + '/api/v1/courses', params=course_params)
+
     #Canvas expects contexts for courses to be course_:id
     course_contexts = ['course_' + str(course['id']) for course in courses_res.json() if 'name' in course];
     return course_contexts
@@ -32,7 +30,7 @@ def get_all_assignments():
     """Get all canvas assignments in all courses for the next month"""
     course_contexts = get_course_contexts()
     # set date range for getting assignments
-    date_now = datetime.datetime.today()
+    date_now = datetime.datetime.utcnow()
     month_delta = datetime.timedelta(days=365/12)
     next_month = date_now + month_delta
     
@@ -49,9 +47,10 @@ def get_all_assignments():
                 'end_date': next_month.isoformat(),
                 'per_page': PER_PAGE,
             }
-        assignments_res = requests.get(
-            'https://' + data["canvas_url"] + '/api/v1/calendar_events', 
-            headers=CANVAS_HEADERS, params=cal_params)
-        all_assignments.extend(assignments_res.json())
+        assignment_events_res = SESSION.get('https://' + data["CANVAS_URL"] + '/api/v1/calendar_events', params=cal_params)
+        #pull the assignment out of the assignment event and put them into the list
+        all_assignments.extend([event['assignment'] for event in assignment_events_res.json()])
         
     return all_assignments
+
+#pprint(get_all_assignments())
