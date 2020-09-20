@@ -1,20 +1,17 @@
-import requests
 from requests.sessions import Session
-import json
 import datetime
 from pprint import pprint
+from typing import List
+
 from utilities import chunks
 from models import CanvasAssignment, CanvasCourse
-from typing import List
-# load config file
-with open('config.json') as config_file:
-    data = json.load(config_file)
+from start_config import config
 
 # declare constant globals 
 CHUNK_SIZE = 9
 PER_PAGE = 50
 SESSION = Session()
-SESSION.headers.update({'Authorization': f'Bearer {data["CANVAS_TOKEN"]}'})
+SESSION.headers.update({'Authorization': f'Bearer {config["CANVAS_TOKEN"]}'})
 
 
 def get_all_courses():
@@ -23,7 +20,7 @@ def get_all_courses():
             'enrollment_state':'active',
             'per_page': PER_PAGE,
         }
-    courses_res = SESSION.get('https://' + data["CANVAS_URL"] + '/api/v1/courses', params=course_params)
+    courses_res = SESSION.get(config["CANVAS_URL"] + '/api/v1/courses', params=course_params)
     courses = [CanvasCourse.from_dict(course) for course in courses_res.json()]
     #Canvas expects contexts for courses to be course_:id
     return courses
@@ -45,12 +42,12 @@ def get_month_assignments():
     for course_context_chunk in course_chunks:
         cal_params = {
                 'type':'assignment',
-                'context_codes[]': course_contexts, 
+                'context_codes[]': course_context_chunk, 
                 'start_date': date_now.isoformat(),
                 'end_date': next_month.isoformat(),
                 'per_page': PER_PAGE,
             }
-        assignment_events_res = SESSION.get('https://' + data["CANVAS_URL"] + '/api/v1/calendar_events', params=cal_params)
+        assignment_events_res = SESSION.get(config["CANVAS_URL"] + '/api/v1/calendar_events', params=cal_params)
         #pull the assignment out of the assignment event and put them into the list
         all_assignments.extend([CanvasAssignment.from_dict(event['assignment']) for event in assignment_events_res.json()])
         
