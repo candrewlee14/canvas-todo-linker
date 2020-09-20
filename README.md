@@ -1,27 +1,12 @@
 # canvas-todo-linker
 Links Canvas LMS Assignments to Microsoft To-Do.
 
-## Setup
-Create a `config.json` file and replace these contents with your information:
+To get executable, see Releases.
 
-```
-{
-    "CANVAS_TOKEN": "TOKEN_HERE",
-    "CANVAS_URL": "SCHOOL_HERE.instructure.com",
-    "CLIENT_ID": "CID_HERE",
-    "AUTHORITY_URL": "https://login.microsoftonline.com/common/",
-    "RESOURCE": "https://graph.microsoft.com",
-    "API_VERSION": "beta",
-    "SCOPE": ["Tasks.ReadWrite"],
-    "TASK_LIST_NAME": "Canvas",
-    "SET_REMINDERS": true,
-    "REMINDER_HOURS_BEFORE_DUE": 12'
-    "BREAK_COURSENAME_AT_DASH": true
-}
-```
-Set up a new resource in Azure Portal. Change the **API Permissions** to allow `Tasks.ReadWrite`.
-Go to the **Authentication** page.
-- Add a platform
-    - Check the box next to https://login.microsoftonline.com/common/oauth2/nativeclient.
-- Find the setting labeled Default client type and set it to Yes.
-- Select Save at the top of the page.
+## How to get Canvas Config Info
+1. Login to your Canvas account.
+2. Go to *Profile* > *Settings* > *+ New Access Token*. You can copy and paste that token in the `CANVAS_TOKEN` field of the `config.json` file, or paste it at runtime when the prompt comes if the field is blank.
+3. You can copy and paste `https://DOMAIN_HERE.instructure.com` into the `CANVAS_URL` field of the `config.json` file, or paste it at runtime when the prompt comes if the field is blank.
+
+## How to Create a Release (Development)
+Run `pyinstaller canvas_todo_linker.py --one-file`. The executable will be located in the `dist/` folder. 
