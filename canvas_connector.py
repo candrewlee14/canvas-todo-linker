@@ -28,7 +28,7 @@ def get_all_courses():
     #Canvas expects contexts for courses to be course_:id
     return courses
 
-def get_all_assignments():
+def get_month_assignments():
     """Get all canvas assignments in all courses for the next month"""
     courses = get_all_courses()
     course_contexts = ['course_' + str(course.id) for course in courses]

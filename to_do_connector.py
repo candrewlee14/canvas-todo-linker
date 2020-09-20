@@ -3,7 +3,10 @@ import os, atexit
 import json
 import logging
 import time
+from typing import List
 from msal import token_cache
+import webbrowser
+import pyperclip
 
 import requests
 import msal
@@ -27,7 +30,7 @@ GRAPH_URL = config['RESOURCE'] + '/' + config['API_VERSION']
 
 
 # Function based on https://github.com/AzureAD/microsoft-authentication-library-for-python/blob/dev/sample/device_flow_sample.py
-def auth_for_session() -> Session :
+def auth_for_session(auto = True) -> Session :
     """
     Get an authorization bearer token from Microsoft to access Microsoft Graph data and returns a requests Session.
     """
@@ -55,12 +58,23 @@ def auth_for_session() -> Session :
     if accounts:
         logging.info("Account(s) exists in cache, probably with token too. Let's try.")
         print("Pick the account you want to use to proceed:")
-        for a in accounts:
-            print(a["username"])
+        for i, a in enumerate(accounts):
+            print(f'({str(i+1)}) ' + a["username"])
+        print(f'({str(len(accounts) + 1)}) None')
+        choice = input('Enter the number of an option: ')
         # Assuming the end user chose this one
-        chosen = accounts[0]
-        # Now let's try to find a token in cache for this account
-        result = app.acquire_token_silent(config["SCOPE"], account=chosen)
+        try:
+            choice_num = int(choice)
+            if choice_num > 0 and choice_num < len(accounts) + 1:
+                chosen = accounts[choice_num-1]
+                # Now let's try to find a token in cache for this account
+                result = app.acquire_token_silent(config["SCOPE"], account=chosen)
+            elif choice_num == len(accounts) + 1:
+                print("Starting up web login for other account...")
+            else: 
+                print("Response was not one of the given options...")
+        except:
+            print("Invalid response...")
 
     if not result:
         logging.info("No suitable token exists in cache. Let's get a new one from AAD.")
@@ -70,7 +84,14 @@ def auth_for_session() -> Session :
             raise ValueError(
                 "Fail to create device flow. Err: %s" % json.dumps(flow, indent=4))
 
-        print(flow["message"])
+        if auto:
+            pyperclip.copy(flow['user_code']) # copy user code to clipboard
+            webbrowser.open(flow['verification_uri']) # open browser
+            print(f'The code {flow["user_code"]} has been copied to your clipboard, '
+                f'and your web browser is opening {flow["verification_uri"]}. '
+                'Paste the code to sign in.')
+        else:
+            print(flow["message"])
         sys.stdout.flush()  # Some terminal needs this to ensure the message is shown
 
         # Ideally you should wait here, in order to save some unnecessary polling
@@ -92,7 +113,7 @@ def auth_for_session() -> Session :
         print(result.get("error_description"))
         print(result.get("correlation_id"))  # You may need this when reporting a bug
 
-def get_or_create_canvas_todolist(s: Session) -> str:
+def get_or_create_todolist(s: Session, name: str) -> str:
     """Looks for given task list name in To Do lists, and if it doesn't exist, it creates it.
     Returns the list id
     """
@@ -100,7 +121,7 @@ def get_or_create_canvas_todolist(s: Session) -> str:
     if lists.status_code != 200:
         print("Response came back with error " + str(lists.status_code))
         quit()
-    canvas_tasklist_ids = [lis['id'] for lis in lists.json()['value'] if lis['displayName'] == config['TASK_LIST_NAME']]
+    canvas_tasklist_ids = [lis['id'] for lis in lists.json()['value'] if lis['displayName'] == name]
     if not canvas_tasklist_ids:
         # canvas list does not exist, we need to make it:
         res = s.post(GRAPH_URL + '/me/todo/lists', json={'displayName':config['TASK_LIST_NAME']})
@@ -110,10 +131,14 @@ def get_or_create_canvas_todolist(s: Session) -> str:
         canvas_tasklist_ids.append(res.json()['id'])
     return canvas_tasklist_ids[0]
 
-def create_task_from_task_obj(s: Session, canvas_todolist_id: str, task: TodoTask):
-    res = s.post(GRAPH_URL + f'/me/todo/lists/{canvas_todolist_id}/tasks' , json=task.to_json())
+def create_task_from_task_obj(s: Session, todolist_id: str, task: TodoTask) -> str:
+    res = s.post(GRAPH_URL + f'/me/todo/lists/{todolist_id}/tasks' , json=task.to_json())
     return res.json()
-    
+
+def get_all_tasks_in_list(s: Session, todolist_id: str) -> List[TodoTask]:
+    tasks_data = s.get(GRAPH_URL + f'/me/todo/lists/{todolist_id}/tasks')
+    return [TodoTask.from_dict(task) for task in tasks_data.json()['value']]
+
 """
 s = auth_for_session()
 time.sleep(1)

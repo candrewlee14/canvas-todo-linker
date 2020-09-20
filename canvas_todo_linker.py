@@ -3,8 +3,8 @@ from typing import Dict, List, Any
 from datetime import datetime, timedelta
 
 from models import CanvasAssignment, CanvasCourse, TodoTask
-from to_do_connector import auth_for_session, create_task_from_task_obj, get_or_create_canvas_todolist, GRAPH_URL, config, cache
-from canvas_connector import get_all_assignments, get_all_courses
+from to_do_connector import auth_for_session, create_task_from_task_obj, get_all_tasks_in_list, get_or_create_todolist, GRAPH_URL, config, cache
+from canvas_connector import get_month_assignments, get_all_courses
 
 
 def create_task_obj_from_assignment(assignment: CanvasAssignment, course_id_dict: Dict[int, str], parse_at_dash: bool = False) -> TodoTask:
@@ -24,9 +24,8 @@ def create_task_obj_from_assignment(assignment: CanvasAssignment, course_id_dict
 s = auth_for_session()
 courses = get_all_courses()
 course_id_dict = {course.id:str(course.name) for course in courses}
-assignments = get_all_assignments()
-task = create_task_obj_from_assignment(assignments[0], course_id_dict, parse_at_dash=True)
-print(task)
-canvas_todolist_id = get_or_create_canvas_todolist(s)
-res_data = create_task_from_task_obj(s, canvas_todolist_id, task)
-print(res_data)
+assignments = get_month_assignments()
+canvas_todolist_id = get_or_create_todolist(s, config['TASK_LIST_NAME'])
+current_tasks = get_all_tasks_in_list(s, canvas_todolist_id)
+assignment_tasks = [create_task_obj_from_assignment(assignment, course_id_dict, parse_at_dash=True) for assignment in assignments]
+print(len(assignment_tasks))
