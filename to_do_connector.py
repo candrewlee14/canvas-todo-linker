@@ -1,10 +1,24 @@
-import sys  # For simplicity, we'll read config file from 1st CLI param sys.argv[1]
+import sys
+import os, atexit
 import json
 import logging
+import time
+from msal import token_cache
 
 import requests
 import msal
+from requests.sessions import Session
+from models import TodoTask
 
+# This will cache the token so we don't have to login through the website every time
+cache = msal.SerializableTokenCache()
+if os.path.exists("my_cache.bin"):
+    cache.deserialize(open("my_cache.bin", "r").read())
+atexit.register(lambda:
+    open("my_cache.bin", "w").write(cache.serialize())
+    # Hint: The following optional line persists only when state changed
+    # if cache.has_state_changed else None
+    )
 
 with open('config.json') as config_file:
     config = json.load(config_file)
@@ -13,24 +27,9 @@ GRAPH_URL = config['RESOURCE'] + '/' + config['API_VERSION']
 
 
 # Function based on https://github.com/AzureAD/microsoft-authentication-library-for-python/blob/dev/sample/device_flow_sample.py
-def auth_for_session() -> requests.Session :
+def auth_for_session() -> Session :
     """
-    Get an authorization bearer token from Microsoft to access Microsoft Graph data and return a requests Session.
-    """
-    """
-    The configuration file would look like this:
-    {
-        "authority": "https://login.microsoftonline.com/common",
-        "client_id": "your_client_id",
-        "SCOPE": ["User.ReadBasic.All"],
-            // You can find the other permission names from this document
-            // https://docs.microsoft.com/en-us/graph/permissions-reference
-        "endpoint": "https://graph.microsoft.com/v1.0/users"
-            // You can find more Microsoft Graph API endpoints from Graph Explorer
-            // https://developer.microsoft.com/en-us/graph/graph-explorer
-    }
-    You can then run this sample with a JSON configuration file:
-        python sample.py parameters.json
+    Get an authorization bearer token from Microsoft to access Microsoft Graph data and returns a requests Session.
     """
 
     # Optional logging
@@ -40,6 +39,7 @@ def auth_for_session() -> requests.Session :
     # Create a preferably long-lived app instance which maintains a token cache.
     app = msal.PublicClientApplication(
         config["CLIENT_ID"], authority='https://login.microsoftonline.com/common',
+        token_cache = cache
         # token_cache=...  # Default cache is in memory only.
                         # You can learn how to use SerializableTokenCache from
                         # https://msal-python.rtfd.io/en/latest/#msal.SerializableTokenCache
@@ -83,15 +83,16 @@ def auth_for_session() -> requests.Session :
             # and then keep calling acquire_token_by_device_flow(flow) in your own customized loop.
 
     if "access_token" in result:
-        session = requests.Session()
-        session.headers.update({'Authorization': f'Bearer {result["access_token"]}'})
+        session = Session()
+        session.headers.update({'Authorization': f'Bearer {result["access_token"]}', 'Content-Type':'application/json'})
+        print("Authentication successful!")
         return session
     else:
         print(result.get("error"))
         print(result.get("error_description"))
         print(result.get("correlation_id"))  # You may need this when reporting a bug
 
-def get_or_create_canvas_list() -> str:
+def get_or_create_canvas_todolist(s: Session) -> str:
     """Looks for given task list name in To Do lists, and if it doesn't exist, it creates it.
     Returns the list id
     """
@@ -99,21 +100,25 @@ def get_or_create_canvas_list() -> str:
     if lists.status_code != 200:
         print("Response came back with error " + str(lists.status_code))
         quit()
-    canvas_ids = [lis['id'] for lis in lists.json()['value'] if lis['displayName'] == config['TASK_LIST_NAME']]
-    if not canvas_ids:
-        # canvas list does not exit, we need to make it:
+    canvas_tasklist_ids = [lis['id'] for lis in lists.json()['value'] if lis['displayName'] == config['TASK_LIST_NAME']]
+    if not canvas_tasklist_ids:
+        # canvas list does not exist, we need to make it:
         res = s.post(GRAPH_URL + '/me/todo/lists', json={'displayName':config['TASK_LIST_NAME']})
         if res.status_code != 201:
             print("Could not insert list. Error " + str(lists.status_code))
             quit()
-        canvas_ids.append(res.json()['id'])
-    return canvas_ids[0]
+        canvas_tasklist_ids.append(res.json()['id'])
+    return canvas_tasklist_ids[0]
 
-def create_task_in_list(list_id: str):
-    res = s.post(GRAPH_URL + f'/me/todo/lists/{list_id}/tasks' , json={'title':'Test Task 2', 'body':{'content':'link would go here', 'contentType':'text'}})
+def create_task_from_task_obj(s: Session, canvas_todolist_id: str, task: TodoTask):
+    res = s.post(GRAPH_URL + f'/me/todo/lists/{canvas_todolist_id}/tasks' , json=task.to_json())
     return res.json()
-
+    
+"""
 s = auth_for_session()
-lis_id = get_or_create_canvas_list()
-
-print(json.dumps(create_task_in_list(lis_id), indent=2))
+time.sleep(1)
+list_id = get_or_create_canvas_list(s)
+tasks_data = s.get(GRAPH_URL + f'/me/todo/lists/{list_id}/tasks').json()['value']
+tasks = [TodoTask.from_dict(task) for task in tasks_data]
+print(tasks)
+"""

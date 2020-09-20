@@ -130,3 +130,6 @@ dmypy.json
 
 # Config file with authorization information
 config.json
+
+# Cache for authentication
+my_cache.bin
