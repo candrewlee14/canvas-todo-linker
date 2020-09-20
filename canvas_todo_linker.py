@@ -30,16 +30,21 @@ def create_task_obj_from_assignment(assignment: CanvasAssignment, course_id_dict
         )
 
 s = auth_for_session()
+print('--------')
+print("Getting Canvas courses and assignments for the next month")
 courses = get_all_courses()
 course_id_dict = {course.id:str(course.name) for course in courses}
 assignments = get_month_assignments()
+1
+print(f"Checking for '{config['TASK_LIST_NAME']}' To Do list")
 canvas_todolist_id = get_or_create_todolist(s, config['TASK_LIST_NAME'])
+print('Getting previous assignment tasks from this list')
 old_tasks = get_all_tasks_in_list(s, canvas_todolist_id)
 updated_tasks = [create_task_obj_from_assignment(assignment, course_id_dict) for assignment in assignments]
 #filter out any duplicates by putting same titles in dictionary
 updated_tasks_by_title = {task.title:task for task in updated_tasks}
 
-#--
+print('Uploading and updating Canvas assignment tasks into To Do')
 res_list = list()
 added = 0
 updated = 0
