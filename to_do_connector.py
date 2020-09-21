@@ -5,7 +5,6 @@ import logging
 from typing import List
 from msal import token_cache
 import webbrowser
-import pyperclip
 import msal
 from requests.sessions import Session
 
@@ -81,10 +80,9 @@ def auth_for_session(auto = True) -> Session :
                 "Fail to create device flow. Err: %s" % json.dumps(flow, indent=4))
 
         if auto:
-            pyperclip.copy(flow['user_code']) # copy user code to clipboard
             webbrowser.open(flow['verification_uri']) # open browser
-            print(f'The code {flow["user_code"]} has been copied to your clipboard, '
-                f'and your web browser is opening {flow["verification_uri"]}. '
+            print(f'Please copy this code: {flow["user_code"]} . '
+                f'Your web browser is opening {flow["verification_uri"]}. '
                 'Paste the code to sign in.')
         else:
             print(flow["message"])

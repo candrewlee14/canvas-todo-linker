@@ -1,6 +1,7 @@
 from pprint import pprint
 from typing import Dict
 from datetime import datetime, timedelta
+import dateutil.parser
 
 from models import CanvasAssignment, CanvasCourse, TodoTask
 from to_do_connector import auth_for_session, create_task_from_task_obj, get_all_tasks_in_list, get_or_create_todolist, GRAPH_URL, config, cache
@@ -18,7 +19,7 @@ def assignment_task_namer(assignment: CanvasAssignment, course_id_dict: Dict[int
 
 def create_task_obj_from_assignment(assignment: CanvasAssignment, course_id_dict: Dict[int, str]) -> TodoTask:
     #parse the due_at time, and set reminder back a specified number of hours
-    reminder_time = (datetime.fromisoformat(assignment.due_at.replace('Z', '')) - timedelta(hours = config["REMINDER_HOURS_BEFORE_DUE"])).isoformat()
+    reminder_time = (dateutil.parser.isoparse(assignment.due_at.replace('Z', '')) - timedelta(hours = config["REMINDER_HOURS_BEFORE_DUE"])).isoformat()
 
     return TodoTask(
         assignment_task_namer(assignment, course_id_dict, config["BREAK_COURSENAME_AT_DASH"]),

@@ -32,7 +32,9 @@ def get_month_assignments():
     # set date range for getting assignments
     date_now = datetime.datetime.utcnow()
     month_delta = datetime.timedelta(days=365/12)
+    day_delta = datetime.timedelta(days=1)
     next_month = date_now + month_delta
+    yesterday = date_now - day_delta
     
     # Canvas API only takes at max 10 contexts
     # break up contexts into chunks 
@@ -43,7 +45,7 @@ def get_month_assignments():
         cal_params = {
                 'type':'assignment',
                 'context_codes[]': course_context_chunk, 
-                'start_date': date_now.isoformat(),
+                'start_date': yesterday.isoformat(),
                 'end_date': next_month.isoformat(),
                 'per_page': PER_PAGE,
             }

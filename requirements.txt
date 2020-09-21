@@ -7,3 +7,5 @@ msal == 1.5.0
 # \canvas-todo-linker\canvas_todo_linker.py: 1
 # \canvas-todo-linker\to_do_connector.py: 8,10
 requests == 2.23.0
+
+python-dateutil
