@@ -1,7 +1,8 @@
 # canvas-todo-linker
 Links Canvas LMS Assignments to Microsoft To-Do.
 
-To get executable, see Releases.
+To get executables, see Releases.
+[Download latest release here.](https://github.com/candrewlee14/canvas-todo-linker/releases/latest/download/canvas_todo_linker.exe)
 
 ## How to get Canvas Config Info
 1. Login to your Canvas account.
