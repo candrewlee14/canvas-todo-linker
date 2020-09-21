@@ -1,4 +1,6 @@
-# canvas-todo-linker
+<img src='https://repository-images.githubusercontent.com/296435500/37d28180-fb66-11ea-8436-a29b25d4415e' width=250px />
+
+# Canvas-ToDo-Linker
 Links Canvas LMS Assignments to Microsoft To-Do.
 
 To get executables, see Releases.
